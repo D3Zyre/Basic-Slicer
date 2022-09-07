@@ -1,4 +1,4 @@
-from matplotlib import lines
+#from matplotlib import lines
 import numpy
 import math
 from stl import mesh
