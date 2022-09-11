@@ -60,6 +60,20 @@ def slice_mesh(input_mesh, layer_height = 0.2, line_width = 0.4, max_xyz = (235,
     """
     print speeds = (first layer, outer wall, inner walls, infill, movement)
     """
+
+    # to convert an STL to GCODE, we will follow these steps:
+    # 1. We "slice" our computations so that we are in R2 instead of R3. Essentially, we are going to compute the same thing for a bunch of different z-heights, starting at "0" and going up by the layer height.
+    # for each slice:
+    #     3. We find which triangle intersect with the current plane we are working with (the slice).
+    #     4. Then we find the lines where each of those triangles intersects our plane.
+    #     5. We have a bunch of straight lines, but of course they can be grouped into lines that connect in a closed loop, so this is what we do now, we group lines together in closed loops of connecting lines.
+    #     6. Since STLs use triangles to make shapes, we might have multiple triangles that intersected our plane in a straight line. We don't need to split that into multiple lines if they're all parallel, so this step is dedicated to reducing any unnecessary lines (same end result but potentially less seperate lines in our groups)
+    #     7. Now we have lines grouped together, but we need to know where the inside of each group is. For us humans that's really easy just by looking at it. Not so simple for a computer. This function finds the inside of each closed line group, and returns that as a list of normal directions (which pairs up with the lines in the line groups)
+    #     At this point we're ready to start making the toolpath.
+    #     8. We generate a toolpath for the printer, which has its own steps:
+    #          9. We generate the walls. The first wall is the outer wall, then we go inside of each line group by utilizing the normal direction that points inside of the loop, to make each inner wall
+    #          TODO still working on this and just commenting to make more sense and figure out that issue later so yeah
+
     z_heights = [i/100 for i in range(0, int(max_xyz[2]*100+layer_height*100), int(layer_height*100))][1:]
     for z_height in z_heights:
         print("\rcurrent height: {:.2f}mm".format(z_height), end = "")
@@ -461,6 +475,9 @@ def generate_walls(line_groups, line_normals, line_width, number_of_walls):
 
     # finding the intersection between two lines is simple, convert them to linear equations (grade 10 math) and then solve their intersection
     # then just extend or shorten them to that point, repeat for each pair of adjacent lines
+
+    # TODO: what about bottom and top layers? or maybe that should be taken care of in infill, or in a seperate function?
+
     wall_line_groups = list() # a list of line groups, one list of groups for each wall
     wall_line_groups_orientation = list() # similarly, a list of the line's normals... TODO: check if this is even needed lol
     offset = 0
